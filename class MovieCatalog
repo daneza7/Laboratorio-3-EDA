@@ -229,7 +229,7 @@ public class MovieCatalog {
             case "selectionSort": selectionSort(movies, comp); break;
             case "mergeSort": movies = mergeSort(movies, comp); break;
             case "quickSort": quickSort(movies, 0, movies.size()-1, comp); break;
-            case "radixSort": 
+            case "radixSort":
                 if ("year".equals(attribute)) {
                     radixSort(movies);
                 } else {
@@ -241,7 +241,7 @@ public class MovieCatalog {
 
         sortedByAttribute = attribute;
     }
-    
+
     private void insertionSort(ArrayList<Movie> list, Comparator<Movie> c) {
         for (int i = 1; i < list.size(); i++) {
             Movie key = list.get(i);
@@ -263,7 +263,7 @@ public class MovieCatalog {
             Collections.swap(list, i, min);
         }
     }
-    
+
     private ArrayList<Movie> mergeSort(ArrayList<Movie> list, Comparator<Movie> c) {
         if (list.size() <= 1) return list;
         int mid = list.size()/2;
@@ -304,7 +304,7 @@ public class MovieCatalog {
         Collections.swap(list, i+1, high);
         return i+1;
     }
-    
+
     private void radixSort(ArrayList<Movie> list) {
         if (list.isEmpty()) return;
         int maxYear = 0;
@@ -315,7 +315,7 @@ public class MovieCatalog {
             countSortYear(list, exp);
         }
     }
-    
+
     private void countSortYear(ArrayList<Movie> list, int exp) {
         int n = list.size();
         List<Movie> output = new ArrayList<>(Collections.nCopies(n, null));
