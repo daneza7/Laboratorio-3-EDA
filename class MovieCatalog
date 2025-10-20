@@ -4,300 +4,339 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MovieCatalog {
-    private ArrayList<Movie> movies;
-    private String sortedByAttribute; // "rating", "genre", "director", "year" or null
+    ArrayList<Movie> movies;
+    String sortedByAttribute;
 
     public MovieCatalog(ArrayList<Movie> movies) {
-        // prefer to copy to avoid external mutation
-        this.movies = new ArrayList<>(movies);
+        this.movies = movies;
         this.sortedByAttribute = null;
     }
 
-    public ArrayList<Movie> getMovies() {
-        return new ArrayList<>(movies);
-    }
-
-    public String getSortedByAttribute() { return sortedByAttribute; }
-
-    /* ========== BÚSQUEDAS ========== */
-
-    // 1) getMoviesByRating: tolerance ±0.1
     public ArrayList<Movie> getMoviesByRating(double rating) {
         ArrayList<Movie> result = new ArrayList<>();
         double tol = 0.1;
 
         if ("rating".equals(sortedByAttribute)) {
-            // binary search for first index within [rating - tol, rating + tol]
-            int left = findFirstRatingIndex(rating - tol);
-            if (left == -1) return result;
-            for (int i = left; i < movies.size(); i++) {
-                double r = movies.get(i).getRating();
-                if (r > rating + tol) break;
-                if (Math.abs(r - rating) <= tol) result.add(movies.get(i));
+            int left = 0, right = movies.size() - 1;
+            int index = -1;
+
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                double r = movies.get(mid).rating;
+                if (Math.abs(r - rating) <= tol) {
+                    index = mid;
+                    break;
+                } else if (r < rating) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
+
+            if (index != -1) {
+                int i = index;
+                while (i >= 0 && Math.abs(movies.get(i).rating - rating) <= tol) {
+                    result.add(movies.get(i));
+                    i--;
+                }
+                i = index + 1;
+                while (i < movies.size() && Math.abs(movies.get(i).rating - rating) <= tol) {
+                    result.add(movies.get(i));
+                    i++;
+                }
+            }
+
         } else {
-            // linear
             for (Movie m : movies) {
-                if (Math.abs(m.getRating() - rating) <= tol) result.add(m);
+                if (Math.abs(m.rating - rating) <= tol) {
+                    result.add(m);
+                }
             }
         }
+
         return result;
     }
 
-    // helper: first index with rating >= target
-    private int findFirstRatingIndex(double target) {
-        int low = 0, high = movies.size() - 1;
-        int found = -1;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            double r = movies.get(mid).getRating();
-            if (r >= target) {
-                found = mid;
-                high = mid - 1;
-            } else {
-                low = mid + 1;
-            }
-        }
-        return found;
-    }
-
-    // 2) getMoviesByRatingRange
-    public ArrayList<Movie> getMoviesByRatingRange(double lowerRating, double higherRating) {
+    public ArrayList<Movie> getMoviesByRatingRange(double lower, double upper) {
         ArrayList<Movie> result = new ArrayList<>();
-        if (lowerRating > higherRating) return result;
 
         if ("rating".equals(sortedByAttribute)) {
-            int start = findFirstRatingIndex(lowerRating);
-            if (start == -1) return result;
-            for (int i = start; i < movies.size(); i++) {
-                double r = movies.get(i).getRating();
-                if (r > higherRating) break;
-                if (r >= lowerRating && r <= higherRating) result.add(movies.get(i));
+            int left = 0, right = movies.size() - 1;
+            int startIndex = -1;
+
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                if (movies.get(mid).rating >= lower) {
+                    startIndex = mid;
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
             }
+
+            if (startIndex != -1) {
+                for (int i = startIndex; i < movies.size(); i++) {
+                    if (movies.get(i).rating > upper) break;
+                    result.add(movies.get(i));
+                }
+            }
+
         } else {
             for (Movie m : movies) {
-                double r = m.getRating();
-                if (r >= lowerRating && r <= higherRating) result.add(m);
+                if (m.rating >= lower && m.rating <= upper) result.add(m);
             }
         }
+
         return result;
     }
 
-    // 3) getMoviesByGenre (exact match)
     public ArrayList<Movie> getMoviesByGenre(String genre) {
         ArrayList<Movie> result = new ArrayList<>();
+
         if ("genre".equals(sortedByAttribute)) {
-            int idx = binarySearchFirstString(movies, genre, Movie.BY_GENRE);
-            if (idx == -1) return result;
-            // iterate forward
-            for (int i = idx; i < movies.size(); i++) {
-                String g = movies.get(i).getGenre();
-                if (!g.equals(genre)) break;
-                result.add(movies.get(i));
+            int left = 0, right = movies.size() - 1;
+            int index = -1;
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                int cmp = movies.get(mid).genre.compareTo(genre);
+                if (cmp == 0) {
+                    index = mid;
+                    break;
+                } else if (cmp < 0) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
+
+            if (index != -1) {
+                int i = index;
+                while (i >= 0 && movies.get(i).genre.equals(genre)) {
+                    result.add(movies.get(i));
+                    i--;
+                }
+                i = index + 1;
+                while (i < movies.size() && movies.get(i).genre.equals(genre)) {
+                    result.add(movies.get(i));
+                    i++;
+                }
+            }
+
         } else {
             for (Movie m : movies) {
-                if (m.getGenre().equals(genre)) result.add(m);
+                if (m.genre.equals(genre)) result.add(m);
             }
         }
         return result;
     }
 
-    // 4) getMoviesByDirector (exact match)
     public ArrayList<Movie> getMoviesByDirector(String director) {
         ArrayList<Movie> result = new ArrayList<>();
+
         if ("director".equals(sortedByAttribute)) {
-            int idx = binarySearchFirstString(movies, director, Movie.BY_DIRECTOR);
-            if (idx == -1) return result;
-            for (int i = idx; i < movies.size(); i++) {
-                String d = movies.get(i).getDirector();
-                if (!d.equals(director)) break;
-                result.add(movies.get(i));
+            int left = 0, right = movies.size() - 1;
+            int index = -1;
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                int cmp = movies.get(mid).director.compareTo(director);
+                if (cmp == 0) {
+                    index = mid;
+                    break;
+                } else if (cmp < 0) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
+
+            if (index != -1) {
+                int i = index;
+                while (i >= 0 && movies.get(i).director.equals(director)) {
+                    result.add(movies.get(i));
+                    i--;
+                }
+                i = index + 1;
+                while (i < movies.size() && movies.get(i).director.equals(director)) {
+                    result.add(movies.get(i));
+                    i++;
+                }
+            }
+
         } else {
             for (Movie m : movies) {
-                if (m.getDirector().equals(director)) result.add(m);
+                if (m.director.equals(director)) result.add(m);
             }
         }
+
         return result;
     }
 
-    // 5) getMoviesByYear
     public ArrayList<Movie> getMoviesByYear(int year) {
         ArrayList<Movie> result = new ArrayList<>();
+
         if ("year".equals(sortedByAttribute)) {
-            // binary search for first movie with year == target
-            int low = 0, high = movies.size() - 1, found = -1;
-            while (low <= high) {
-                int mid = (low + high) >>> 1;
-                int y = movies.get(mid).getReleaseYear();
-                if (y == year) {
-                    found = mid;
-                    high = mid - 1; // find first occurrence
-                } else if (y < year) low = mid + 1;
-                else high = mid - 1;
+            int left = 0, right = movies.size() - 1;
+            int index = -1;
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                if (movies.get(mid).releaseYear == year) {
+                    index = mid;
+                    break;
+                } else if (movies.get(mid).releaseYear < year) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
-            if (found == -1) return result;
-            for (int i = found; i < movies.size(); i++) {
-                if (movies.get(i).getReleaseYear() != year) break;
-                result.add(movies.get(i));
+
+            if (index != -1) {
+                int i = index;
+                while (i >= 0 && movies.get(i).releaseYear == year) {
+                    result.add(movies.get(i));
+                    i--;
+                }
+                i = index + 1;
+                while (i < movies.size() && movies.get(i).releaseYear == year) {
+                    result.add(movies.get(i));
+                    i++;
+                }
             }
+
         } else {
             for (Movie m : movies) {
-                if (m.getReleaseYear() == year) result.add(m);
+                if (m.releaseYear == year) result.add(m);
             }
         }
+
         return result;
     }
 
-    // helper: binary search first index of exact string key using provided comparator (which must compare by that attribute primarily)
-    private int binarySearchFirstString(List<Movie> list, String key, Comparator<Movie> comparator) {
-        int low = 0, high = list.size() - 1, found = -1;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            // create a dummy movie with key in right field so comparator works;
-            // comparator is expected to compare based on the attribute first.
-            Movie probe = makeProbeForComparator(comparator, key);
-            int cmp = comparator.compare(list.get(mid), probe);
-            if (cmp == 0) {
-                found = mid;
-                high = mid - 1;
-            } else if (cmp < 0) {
-                low = mid + 1;
-            } else {
-                high = mid - 1;
-            }
-        }
-        return found;
-    }
-
-    // create probe movie with key set in the field comparator will use
-    private Movie makeProbeForComparator(Comparator<Movie> comparator, String key) {
-        // Only used when comparator is one of BY_GENRE or BY_DIRECTOR.
-        // Put key in appropriate field; other fields arbitrary.
-        if (comparator == Movie.BY_GENRE) {
-            return new Movie("", "", key, 0, 0.0);
-        } else { // director
-            return new Movie("", key, "", 0, 0.0);
-        }
-    }
-
-    /* ========== ORDENAMIENTOS ========== */
-
-    /**
-     * Sort by algorithm and attribute.
-     * algorithm: "insertionSort", "selectionSort", "mergeSort", "radixSort", or other -> Collections.sort()
-     * attribute: "rating", "genre", "director", "year" (default -> rating)
-     */
     public void sortByAlgorithm(String algorithm, String attribute) {
-        if (attribute == null) attribute = "rating";
         Comparator<Movie> comp;
+
         switch (attribute) {
-            case "genre": comp = Movie.BY_GENRE; break;
-            case "director": comp = Movie.BY_DIRECTOR; break;
-            case "year": comp = Movie.BY_YEAR; break;
-            case "rating":
-            default: comp = Movie.BY_RATING; attribute = "rating"; break;
+            case "rating": comp = (a,b) -> Double.compare(a.rating, b.rating); break;
+            case "genre": comp = (a,b) -> a.genre.compareTo(b.genre); break;
+            case "director": comp = (a,b) -> a.director.compareTo(b.director); break;
+            case "year": comp = (a,b) -> Integer.compare(a.releaseYear, b.releaseYear); break;
+            default:
+                comp = (a,b) -> Double.compare(a.rating, b.rating);
+                attribute = "rating";
         }
 
         switch (algorithm) {
-            case "insertionSort":
-                insertionSort(movies, comp);
+            case "insertionSort": insertionSort(movies, comp); break;
+            case "selectionSort": selectionSort(movies, comp); break;
+            case "mergeSort": movies = mergeSort(movies, comp); break;
+            case "quickSort": quickSort(movies, 0, movies.size()-1, comp); break;
+            case "radixSort": 
+                if ("year".equals(attribute)) {
+                    radixSort(movies);
+                } else {
+                    Collections.sort(movies, comp);
+                }
                 break;
-            case "selectionSort":
-                selectionSort(movies, comp);
-                break;
-            case "mergeSort":
-                movies = mergeSort(movies, comp);
-                break;
-            case "radixSort":
-                // Radix sort implemented for integer year
-                if ("year".equals(attribute)) radixSortByYear();
-                else Collections.sort(movies, comp); // fallback for unsupported attr
-                break;
-            default:
-                // fallback to Collections.sort (uses Timsort, O(n log n))
-                Collections.sort(movies, comp);
-                break;
+            default: Collections.sort(movies, comp); break;
         }
+
         sortedByAttribute = attribute;
     }
-
-    /* ---------- Sorting implementations ---------- */
-
+    
     private void insertionSort(ArrayList<Movie> list, Comparator<Movie> c) {
         for (int i = 1; i < list.size(); i++) {
             Movie key = list.get(i);
             int j = i - 1;
             while (j >= 0 && c.compare(list.get(j), key) > 0) {
-                list.set(j + 1, list.get(j));
+                list.set(j+1, list.get(j));
                 j--;
             }
-            list.set(j + 1, key);
+            list.set(j+1, key);
         }
     }
 
     private void selectionSort(ArrayList<Movie> list, Comparator<Movie> c) {
-        int n = list.size();
-        for (int i = 0; i < n - 1; i++) {
+        for (int i = 0; i < list.size()-1; i++) {
             int min = i;
-            for (int j = i + 1; j < n; j++) {
+            for (int j = i+1; j < list.size(); j++) {
                 if (c.compare(list.get(j), list.get(min)) < 0) min = j;
             }
-            if (min != i) Collections.swap(list, i, min);
+            Collections.swap(list, i, min);
         }
     }
-
+    
     private ArrayList<Movie> mergeSort(ArrayList<Movie> list, Comparator<Movie> c) {
         if (list.size() <= 1) return list;
-        int mid = list.size() / 2;
+        int mid = list.size()/2;
         ArrayList<Movie> left = mergeSort(new ArrayList<>(list.subList(0, mid)), c);
         ArrayList<Movie> right = mergeSort(new ArrayList<>(list.subList(mid, list.size())), c);
         return merge(left, right, c);
     }
 
     private ArrayList<Movie> merge(ArrayList<Movie> left, ArrayList<Movie> right, Comparator<Movie> c) {
-        ArrayList<Movie> res = new ArrayList<>(left.size() + right.size());
-        int i = 0, j = 0;
-        while (i < left.size() && j < right.size()) {
+        ArrayList<Movie> res = new ArrayList<>();
+        int i=0, j=0;
+        while (i<left.size() && j<right.size()) {
             if (c.compare(left.get(i), right.get(j)) <= 0) res.add(left.get(i++));
             else res.add(right.get(j++));
         }
-        while (i < left.size()) res.add(left.get(i++));
-        while (j < right.size()) res.add(right.get(j++));
+        while (i<left.size()) res.add(left.get(i++));
+        while (j<right.size()) res.add(right.get(j++));
         return res;
     }
 
-    /**
-     * Radix sort for releaseYear (non-negative years). Stable.
-     * Implementation: LSD radix base 10 on integer years.
-     */
-    private void radixSortByYear() {
-        if (movies.isEmpty()) return;
-        // find max year
-        int max = Integer.MIN_VALUE;
-        for (Movie m : movies) if (m.getReleaseYear() > max) max = m.getReleaseYear();
-        int exp = 1;
-        ArrayList<Movie> aux = new ArrayList<>(movies);
-        while (max / exp > 0) {
-            // counting sort by digit (exp)
-            int[] count = new int[10];
-            for (Movie m : movies) {
-                int digit = (m.getReleaseYear() / exp) % 10;
-                count[digit]++;
-            }
-            for (int i = 1; i < 10; i++) count[i] += count[i - 1];
-            // build aux from end to keep stable
-            for (int i = movies.size() - 1; i >= 0; i--) {
-                Movie m = movies.get(i);
-                int digit = (m.getReleaseYear() / exp) % 10;
-                aux.set(--count[digit], m);
-            }
-            // copy back
-            for (int i = 0; i < movies.size(); i++) movies.set(i, aux.get(i));
-            exp *= 10;
+    private void quickSort(ArrayList<Movie> list, int low, int high, Comparator<Movie> c) {
+        if (low<high) {
+            int p = partition(list, low, high, c);
+            quickSort(list, low, p-1, c);
+            quickSort(list, p+1, high, c);
         }
     }
 
-    /* ========== FIN ========== */
+    private int partition(ArrayList<Movie> list, int low, int high, Comparator<Movie> c) {
+        Movie pivot = list.get(high);
+        int i = low-1;
+        for (int j=low; j<high; j++) {
+            if (c.compare(list.get(j), pivot) <= 0) {
+                i++;
+                Collections.swap(list, i, j);
+            }
+        }
+        Collections.swap(list, i+1, high);
+        return i+1;
+    }
+    
+    private void radixSort(ArrayList<Movie> list) {
+        if (list.isEmpty()) return;
+        int maxYear = 0;
+        for (Movie m : list) {
+            if (m.releaseYear > maxYear) maxYear = m.releaseYear;
+        }
+        for (int exp = 1; maxYear / exp > 0; exp *= 10) {
+            countSortYear(list, exp);
+        }
+    }
+    
+    private void countSortYear(ArrayList<Movie> list, int exp) {
+        int n = list.size();
+        List<Movie> output = new ArrayList<>(Collections.nCopies(n, null));
+        int[] count = new int[10];
+
+        for (int i = 0; i < n; i++) {
+            count[(list.get(i).releaseYear / exp) % 10]++;
+        }
+
+        for (int i = 1; i < 10; i++) {
+            count[i] += count[i - 1];
+        }
+
+        for (int i = n - 1; i >= 0; i--) {
+            int digit = (list.get(i).releaseYear / exp) % 10;
+            output.set(count[digit] - 1, list.get(i));
+            count[digit]--;
+        }
+
+        for (int i = 0; i < n; i++) {
+            list.set(i, output.get(i));
+        }
+    }
 }
