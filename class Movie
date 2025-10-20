@@ -3,7 +3,7 @@ public class Movie {
     String director;
     String genre;
     int releaseYear;
-    double rating; // 0.0 - 10.0
+    double rating; 
 
     public Movie(String title, String director, String genre, int releaseYear, double rating) {
         this.title = title;
