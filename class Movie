@@ -1,12 +1,9 @@
-import java.util.Comparator;
-import java.util.Objects;
-
 public class Movie {
-    private final String title;
-    private final String director;
-    private final String genre;
-    private final int releaseYear;
-    private final double rating; // 0.0 - 10.0
+    String title;
+    String director;
+    String genre;
+    int releaseYear;
+    double rating; // 0.0 - 10.0
 
     public Movie(String title, String director, String genre, int releaseYear, double rating) {
         this.title = title;
@@ -16,50 +13,4 @@ public class Movie {
         this.rating = rating;
     }
 
-    // Getters
-    public String getTitle() { return title; }
-    public String getDirector() { return director; }
-    public String getGenre() { return genre; }
-    public int getReleaseYear() { return releaseYear; }
-    public double getRating() { return rating; }
-
-    // Comparators for different attributes
-    public static final Comparator<Movie> BY_RATING =
-            Comparator.comparingDouble(Movie::getRating)
-                      .thenComparing(Movie::getTitle);
-
-    public static final Comparator<Movie> BY_GENRE =
-            Comparator.comparing(Movie::getGenre, String::compareTo)
-                      .thenComparing(Movie::getTitle);
-
-    public static final Comparator<Movie> BY_DIRECTOR =
-            Comparator.comparing(Movie::getDirector, String::compareTo)
-                      .thenComparing(Movie::getTitle);
-
-    public static final Comparator<Movie> BY_YEAR =
-            Comparator.comparingInt(Movie::getReleaseYear)
-                      .thenComparing(Movie::getTitle);
-
-    @Override
-    public String toString() {
-        return String.format("%s (%d) - %s - %s - %.1f",
-                title, releaseYear, director, genre, rating);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Movie)) return false;
-        Movie m = (Movie) o;
-        return releaseYear == m.releaseYear &&
-                Double.compare(m.rating, rating) == 0 &&
-                Objects.equals(title, m.title) &&
-                Objects.equals(director, m.director) &&
-                Objects.equals(genre, m.genre);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(title, director, genre, releaseYear, rating);
-    }
 }
